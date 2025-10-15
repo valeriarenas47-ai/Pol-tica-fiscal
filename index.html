@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Chart.js Annotation Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <meta name="description" content="Simulador educativo para proyectar ingresos, gasto público, deuda y efectos en IDH, PIB per cápita e Índice de Gini e IPC bajo distintos escenarios de política fiscal, monetaria y del lado de la oferta." />
+  <meta name="description" content="Simulador educativo para proyectar ingresos, gasto público (%% del PIB), saldo fiscal, deuda, IPC, IDH, PIB per cápita e Índice de Gini bajo escenarios de política fiscal, monetaria y de oferta." />
   <style>
     .card { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
     .grid-autofit { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
@@ -30,7 +30,7 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-2">Descripción</h2>
-      <p class="text-sm text-slate-600">Herramienta educativa lista para subir a Netlify (archivo único). Proyecta ingresos tributarios, gasto público (con <strong>% del PIB</strong> e indicadores de tendencia), déficit/superávit, deuda del Estado, <strong>IPC</strong> y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>. <em>Modelo heurístico simplificado con supuestos transparentes</em>.</p>
+      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong>, <strong>gasto público</strong> (incluye <strong>% del PIB</strong>), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda</strong> (con tendencia desde el nivel inicial), <strong>IPC</strong>, <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>. Modelo heurístico didáctico.</p>
     </section>
 
     <!-- Parámetros globales -->
@@ -46,7 +46,14 @@
         <label class="block">Deuda pública inicial (% del PIB)
           <input id="debt0" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="40" />
         </label>
-        <label class="block">Inflación base esperada (IPC anual, %)
+        <label class="block">Tendencia de deuda desde el nivel inicial
+          <select id="debtTrend" class="mt-1 w-full rounded-xl border-slate-300">
+            <option value="plano" selected>Plana</option>
+            <option value="progresivo">Progresiva (↑)</option>
+            <option value="regresivo">Regresiva (↓)</option>
+          </select>
+        </label>
+        <label class="block">Inflación base inicial (IPC anual, %)
           <input id="inflation" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="4" />
         </label>
         <label class="block">Horizonte (años)
@@ -58,7 +65,7 @@
     <!-- Políticas -->
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-4">2) Controles de política</h2>
-      <div class="grid xl:grid-cols-4 gap-6">
+      <div class="grid xl:grid-cols-3 gap-6">
         <!-- Fiscal core -->
         <div>
           <h3 class="text-lg font-semibold mb-2">Fiscal</h3>
@@ -72,14 +79,8 @@
             <label class="block">% Impuesto al individuo (tasa promedio)
               <input id="indTax" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="15" />
             </label>
-            <label class="block">Impuestos aduaneros (% promedio)
-              <input id="tariff" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" />
-            </label>
             <label class="block">Incentivos fiscales medioambientales (% del PIB)
               <input id="greenIncentives" type="number" step="0.05" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.5" />
-            </label>
-            <label class="block">Emisión/venta de bonos (USD anuales)
-              <input id="bondIssuance" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="2000000000" />
             </label>
           </div>
         </div>
@@ -103,11 +104,11 @@
             <label class="block">Años de transición (5–10)
               <input id="fiscalYears" type="number" min="5" max="10" value="7" class="number-input mt-1 w-full rounded-xl border-slate-300" />
             </label>
-            <label class="block">Tendencia del gasto fiscal
+            <label class="block">Tendencia del gasto fiscal (%PIB)
               <select id="spendTrend" class="mt-1 w-full rounded-xl border-slate-300">
                 <option value="plana" selected>Plana</option>
-                <option value="progresiva">Progresiva (↑ %PIB)</option>
-                <option value="regresiva">Regresiva (↓ %PIB)</option>
+                <option value="progresiva">Progresiva (↑)</option>
+                <option value="regresiva">Regresiva (↓)</option>
               </select>
             </label>
           </div>
@@ -123,9 +124,6 @@
             <label class="block">Encaje bancario (% de depósitos)
               <input id="reserveReq" type="number" step="0.5" class="number-input mt-1 w-full rounded-xl border-slate-300" value="9" />
             </label>
-            <label class="block">Tipo de cambio (USD por moneda local) — proxy
-              <input id="fx" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.0011" />
-            </label>
             <label class="block">Nivel de proteccionismo (0=libre, 100=alto)
               <input id="protectionism" type="range" min="0" max="100" value="20" class="w-full" />
             </label>
@@ -140,8 +138,10 @@
             </label>
           </div>
         </div>
+      </div>
 
-        <!-- Gasto público: estructura y sectores -->
+      <!-- Gasto público: estructura simple -->
+      <div class="mt-6 grid grid-cols-1 gap-6">
         <div>
           <h3 class="text-lg font-semibold mb-2">Estructura del gasto público</h3>
           <div class="grid-autofit">
@@ -154,73 +154,6 @@
           </div>
           <p class="text-xs text-slate-500 mt-1">Se normaliza a 100% automáticamente.</p>
         </div>
-      </div>
-
-      <div class="mt-6 p-4 rounded-xl border border-slate-200">
-        <h3 class="text-lg font-semibold mb-3">Asignación por funciones del gasto (% del gasto total) y tendencia</h3>
-        <div class="grid md:grid-cols-2 gap-4 text-sm">
-          <!-- Columna 1 -->
-          <div class="space-y-3">
-            <div class="flex items-center gap-2">
-              <label class="w-40">Desarrollo social</label>
-              <input id="funSocial" type="number" value="38" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendSocial" class="rounded-lg border-slate-300">
-                <option value="plana">Plana</option>
-                <option value="progresiva" selected>Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="w-40">Administración</label>
-              <input id="funAdmin" type="number" value="16" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendAdmin" class="rounded-lg border-slate-300">
-                <option value="plana" selected>Plana</option>
-                <option value="progresiva">Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="w-40">Infraestructura</label>
-              <input id="funInfra" type="number" value="22" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendInfra" class="rounded-lg border-slate-300">
-                <option value="plana">Plana</option>
-                <option value="progresiva" selected>Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-          </div>
-          <!-- Columna 2 -->
-          <div class="space-y-3">
-            <div class="flex items-center gap-2">
-              <label class="w-40">Cultura</label>
-              <input id="funCultura" type="number" value="6" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendCultura" class="rounded-lg border-slate-300">
-                <option value="plana" selected>Plana</option>
-                <option value="progresiva">Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="w-40">Poder Legislativo</label>
-              <input id="funLeg" type="number" value="5" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendLeg" class="rounded-lg border-slate-300">
-                <option value="plana" selected>Plana</option>
-                <option value="progresiva">Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="w-40">Relaciones exteriores</label>
-              <input id="funRRII" type="number" value="3" class="number-input w-24 rounded-lg border-slate-300"/>
-              <select id="trendRRII" class="rounded-lg border-slate-300">
-                <option value="plana" selected>Plana</option>
-                <option value="progresiva">Progresiva</option>
-                <option value="regresiva">Regresiva</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">Las participaciones se normalizan a 100% y las tendencias aplican variaciones lineales a lo largo del horizonte.</p>
       </div>
 
       <div class="mt-4 flex gap-3">
@@ -304,9 +237,9 @@
       <div class="p-4 card rounded-2xl bg-white">
         <h3 class="text-lg font-semibold mb-2">Notas del modelo (supuestos simplificados)</h3>
         <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
-          <li>El <strong>gasto %PIB</strong> combina base 21% con postura fiscal (transición 5–10 años) y una <em>tendencia</em> (plana/progresiva/regresiva) aplicada de forma relativa a través del horizonte.</li>
-          <li><strong>IPC</strong> (indicador de inflación) = inflación base + 0.6×(crec. base monetaria − crecimiento real) + presiones de proteccionismo/aduanas − parte del efecto de TPM real. Heurístico.</li>
-          <li>La emisión de dinero "expansiva" supone mayor crecimiento de base (presiona IPC); "contractiva" lo reduce.</li>
+          <li>El <strong>gasto %PIB</strong> combina base 21% con postura fiscal (transición 5–10 años) y una <em>tendencia</em> (plana/progresiva/regresiva) aplicada linealmente.</li>
+          <li><strong>IPC</strong> = inflación base inicial + 0.6×(crec. de base monetaria − crecimiento real) + presiones de proteccionismo − freno parcial por TPM real. Heurístico.</li>
+          <li>La deuda parte en el nivel inicial elegido y su trayectoria incorpora la <strong>tendencia</strong> (progresiva/regresiva/plana) además del saldo fiscal.</li>
         </ul>
       </div>
     </section>
@@ -329,19 +262,17 @@
         gdp0: parseFloat(document.getElementById('gdp0').value || 0),
         pop: parseFloat(document.getElementById('pop').value || 0),
         debt0: parseFloat(document.getElementById('debt0').value || 0),
+        debtTrend: document.getElementById('debtTrend').value,
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
         horizon: parseInt(document.getElementById('horizon').value || 5),
 
         taxBurden: parseFloat(document.getElementById('taxBurden').value || 0)/100,
         corpTax: parseFloat(document.getElementById('corpTax').value || 0)/100,
         indTax: parseFloat(document.getElementById('indTax').value || 0)/100,
-        tariff: parseFloat(document.getElementById('tariff').value || 0)/100,
         greenIncentives: parseFloat(document.getElementById('greenIncentives').value || 0)/100,
-        bondIssuance: parseFloat(document.getElementById('bondIssuance').value || 0),
 
         policyRate: parseFloat(document.getElementById('policyRate').value || 0)/100,
         reserveReq: parseFloat(document.getElementById('reserveReq').value || 0)/100,
-        fx: parseFloat(document.getElementById('fx').value || 0),
         protectionism: parseInt(document.getElementById('protectionism').value || 0),
         regulation: parseInt(document.getElementById('regulation').value || 0),
         moneyIssuance: document.getElementById('moneyIssuance').value,
@@ -353,22 +284,6 @@
 
         spendCurrent: parseFloat(document.getElementById('spendCurrent').value || 0)/100,
         spendCapital: parseFloat(document.getElementById('spendCapital').value || 0)/100,
-
-        funSocial: parseFloat(document.getElementById('funSocial').value || 0)/100,
-        funAdmin: parseFloat(document.getElementById('funAdmin').value || 0)/100,
-        funInfra: parseFloat(document.getElementById('funInfra').value || 0)/100,
-        funCultura: parseFloat(document.getElementById('funCultura').value || 0)/100,
-        funLeg: parseFloat(document.getElementById('funLeg').value || 0)/100,
-        funRRII: parseFloat(document.getElementById('funRRII').value || 0)/100,
-
-        trendSocial: document.getElementById('trendSocial').value,
-        trendAdmin: document.getElementById('trendAdmin').value,
-        trendInfra: document.getElementById('trendInfra').value,
-        trendCultura: document.getElementById('trendCultura').value,
-        trendLeg: document.getElementById('trendLeg').value,
-        trendRRII: document.getElementById('trendRRII').value,
-
-        debtTrend: document.getElementById('debtTrend')?.value || 'plano',
       };
     }
 
@@ -390,9 +305,6 @@
       // Normalizar estructura gasto (corriente/capital)
       let [cur, cap] = normParts([P.spendCurrent, P.spendCapital]);
 
-      // Normalizar funciones del gasto base
-      let baseFun = normParts([P.funSocial, P.funAdmin, P.funInfra, P.funCultura, P.funLeg, P.funRRII]);
-
       // Postura fiscal: offsets sobre gasto %PIB
       const stanceToOffset = (s)=> s==='expansiva' ? 0.025 : -0.02;
       const transYears = clamp(P.fiscalYears, 5, 10);
@@ -411,15 +323,15 @@
       const reservePenalty = - clamp(P.reserveReq, 0, 0.4) * 0.05;
       const greenTFP = clamp(P.greenIncentives, 0, 0.01) * 0.6;
 
-      // Impuestos efectivos
-      const compAdj = (0.45*P.corpTax/0.25) + (0.45*P.indTax/0.15) + (0.10*P.tariff/0.05);
+      // Impuestos efectivos (sin aranceles)
+      const compAdj = (0.55*P.corpTax/0.25) + (0.45*P.indTax/0.15);
       const greenHole = P.greenIncentives;
       let effTaxRatioBase = clamp(P.taxBurden * clamp(compAdj, 0.6, 1.4) - greenHole, 0.05, 0.45);
 
       // Gasto base
       const spendBase = 0.21;
 
-      // Ajuste de política de deuda (±0.3 pp del PIB por año)
+      // Ajuste de política de deuda (±0.3 pp del PIB por año) desde el nivel inicial
       const debtAdj = P.debtTrend==='progresivo' ? +0.003 : P.debtTrend==='regresivo' ? -0.003 : 0.0;
 
       const rows = [];
@@ -453,26 +365,26 @@
         // Saldo fiscal
         const balance = revenues - spendTotal;
 
-        // Necesidad primaria + plan de deuda y bonos
+        // Necesidad primaria + tendencia de deuda (no se considera emisión/venta de bonos)
         const primaryNeed = -balance; // >0 si déficit
         const policyDebtNeed = debtAdj * GDP; // ajuste por plan
-        const netBorrowing = Math.max(0, primaryNeed + policyDebtNeed - P.bondIssuance) / GDP; // %PIB
+        const netBorrowing = Math.max(0, primaryNeed + policyDebtNeed) / GDP; // %PIB
         const debtChange = netBorrowing - Math.max(0, -primaryNeed-policyDebtNeed)/GDP;
         debtRatio = clamp(debtRatio + debtChange, 0, 1.5);
 
         // Indicadores sociales
         const gdpPC = GDP / (popM*1e6);
-        const progressivity = clamp((P.indTax - 0.12) * 3 + (spendRatio - 0.21) * 2 + (applyTrend(baseFun[0], P.trendSocial, t)-0.35), -0.10, 0.12);
+        const progressivity = clamp((P.indTax - 0.12) * 3 + (spendRatio - 0.21) * 2, -0.10, 0.12);
         const opennessIneq = (openness>0.7? 0.01 : 0) - (openness<0.3? -0.005 : 0);
         let gini = clamp(0.44 - progressivity + opennessIneq, 0.26, 0.60);
         const hdiIncome = clamp((Math.log(gdpPC) - Math.log(2000)) / (Math.log(60000) - Math.log(2000)), 0, 1);
-        const socialEffort = clamp(spendRatio*2 + P.greenIncentives*20 + applyTrend(baseFun[2], P.trendInfra, t)*0.5, 0, 1);
+        const socialEffort = clamp(spendRatio*2 + P.greenIncentives*20 + cap*0.5, 0, 1);
         const hdi = clamp(0.6*hdiIncome + 0.4*socialEffort, 0.35, 0.98);
 
         // IPC (inflación anual)
-        const tradePressure = (P.protectionism/100)*0.04 + clamp(P.tariff-0.05, -0.05, 0.10); // hasta ~4 pp por proteccionismo alto + aranceles
-        const tpmBrake = 0.25*Math.max(0, rateGap); // frena una parte si TPM real positiva
-        const cpi = clamp(P.inflation + 0.6*(moneyGrowth - growth) + 0.3*tradePressure - tpmBrake, -0.02, 0.25); // -2% a 25%
+        const tradePressure = (P.protectionism/100)*0.04; // sin aranceles
+        const tpmBrake = 0.25*Math.max(0, rateGap);
+        const cpi = clamp(P.inflation + 0.6*(moneyGrowth - growth) + 0.3*tradePressure - tpmBrake, -0.02, 0.25);
 
         rows.push({ year: yr, GDP, revenues, spendTotal, spendCorr, spendCap, balance, debtRatio, gdpPC, gini, hdi, spendPct: spendRatio, cpi });
       });
@@ -514,7 +426,7 @@
           <p><strong>Punto de equilibrio requerido (año 1):</strong> ${(out.neededTaxRatio*100).toFixed(1)}%</p>
         </div>
         <div>
-          <p><strong>Plan de emisión de dinero:</strong> ${params.moneyIssuance}</p>
+          <p><strong>Deuda inicial:</strong> ${fmt2.format(params.debt0)}% del PIB <span class="text-slate-500">(tendencia: ${params.debtTrend})</span></p>
           <p><strong>IPC medio (horizonte):</strong> ${ipcAvg.toFixed(2)}%</p>
         </div>
       `;
