@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Chart.js Annotation Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <meta name="description" content="Simulador educativo para proyectar ingresos, gasto público, deuda y efectos en IDH, PIB per cápita e índice de Gini bajo distintos escenarios de política fiscal, monetaria y del lado de la oferta." />
+  <meta name="description" content="Simulador educativo para proyectar ingresos, gasto público, deuda y efectos en IDH, PIB per cápita e Índice de Gini e IPC bajo distintos escenarios de política fiscal, monetaria y del lado de la oferta." />
   <style>
     .card { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
     .grid-autofit { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
@@ -30,7 +30,7 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-2">Descripción</h2>
-      <p class="text-sm text-slate-600">Herramienta educativa lista para subir a Netlify (un solo archivo). Permite simular proyecciones a 5–10 años de ingresos tributarios, gasto público, déficit/superávit, deuda del Estado y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>, dados parámetros de política fiscal, monetaria y de oferta. <em>Modelo heurístico simplificado con supuestos transparentes</em> para fines didácticos.</p>
+      <p class="text-sm text-slate-600">Herramienta educativa lista para subir a Netlify (archivo único). Proyecta ingresos tributarios, gasto público (con <strong>% del PIB</strong> e indicadores de tendencia), déficit/superávit, deuda del Estado, <strong>IPC</strong> y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>. <em>Modelo heurístico simplificado con supuestos transparentes</em>.</p>
     </section>
 
     <!-- Parámetros globales -->
@@ -46,7 +46,7 @@
         <label class="block">Deuda pública inicial (% del PIB)
           <input id="debt0" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="40" />
         </label>
-        <label class="block">Inflación anual esperada (%)
+        <label class="block">Inflación base esperada (IPC anual, %)
           <input id="inflation" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="4" />
         </label>
         <label class="block">Horizonte (años)
@@ -58,7 +58,7 @@
     <!-- Políticas -->
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-4">2) Controles de política</h2>
-      <div class="grid lg:grid-cols-3 gap-6">
+      <div class="grid xl:grid-cols-4 gap-6">
         <!-- Fiscal core -->
         <div>
           <h3 class="text-lg font-semibold mb-2">Fiscal</h3>
@@ -75,7 +75,7 @@
             <label class="block">Impuestos aduaneros (% promedio)
               <input id="tariff" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" />
             </label>
-            <label class="block">Incentivos fiscales medioambientales (% del PIB, gasto tributario)
+            <label class="block">Incentivos fiscales medioambientales (% del PIB)
               <input id="greenIncentives" type="number" step="0.05" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.5" />
             </label>
             <label class="block">Emisión/venta de bonos (USD anuales)
@@ -103,6 +103,13 @@
             <label class="block">Años de transición (5–10)
               <input id="fiscalYears" type="number" min="5" max="10" value="7" class="number-input mt-1 w-full rounded-xl border-slate-300" />
             </label>
+            <label class="block">Tendencia del gasto fiscal
+              <select id="spendTrend" class="mt-1 w-full rounded-xl border-slate-300">
+                <option value="plana" selected>Plana</option>
+                <option value="progresiva">Progresiva (↑ %PIB)</option>
+                <option value="regresiva">Regresiva (↓ %PIB)</option>
+              </select>
+            </label>
           </div>
         </div>
 
@@ -125,12 +132,16 @@
             <label class="block">Regulaciones del mercado (0=bajas, 100=altas)
               <input id="regulation" type="range" min="0" max="100" value="40" class="w-full" />
             </label>
+            <label class="block">Emisión de dinero (crecimiento de base)
+              <select id="moneyIssuance" class="mt-1 w-full rounded-xl border-slate-300">
+                <option value="expansiva" selected>Expansiva</option>
+                <option value="contractiva">Contractiva</option>
+              </select>
+            </label>
           </div>
         </div>
-      </div>
 
-      <!-- Gasto público: estructura y sectores -->
-      <div class="mt-6 grid lg:grid-cols-2 gap-6">
+        <!-- Gasto público: estructura y sectores -->
         <div>
           <h3 class="text-lg font-semibold mb-2">Estructura del gasto público</h3>
           <div class="grid-autofit">
@@ -142,19 +153,6 @@
             </label>
           </div>
           <p class="text-xs text-slate-500 mt-1">Se normaliza a 100% automáticamente.</p>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold mb-2">Tendencia del nivel de deuda</h3>
-          <div class="grid-autofit">
-            <label class="block">Variación plan de deuda
-              <select id="debtTrend" class="mt-1 w-full rounded-xl border-slate-300">
-                <option value="plano" selected>Plano</option>
-                <option value="progresivo">Progresivo (sube)</option>
-                <option value="regresivo">Regresivo (baja)</option>
-              </select>
-            </label>
-          </div>
-          <p class="text-xs text-slate-500 mt-1">Aplica un ajuste anual adicional a la necesidad de financiamiento.</p>
         </div>
       </div>
 
@@ -252,16 +250,20 @@
 
       <div class="grid lg:grid-cols-2 gap-6">
         <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">Gasto público (% del PIB)</h3>
+          <canvas id="chartSpendPct" height="200"></canvas>
+        </div>
+        <div class="p-4 card rounded-2xl bg-white">
           <h3 class="text-lg font-semibold mb-2">Deuda pública (% del PIB)</h3>
           <canvas id="chartDebt" height="200"></canvas>
         </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
         <div class="p-4 card rounded-2xl bg-white">
           <h3 class="text-lg font-semibold mb-2">PIB per cápita (USD)</h3>
           <canvas id="chartGDPpc" height="200"></canvas>
         </div>
-      </div>
-
-      <div class="grid lg:grid-cols-2 gap-6">
         <div class="p-4 card rounded-2xl bg-white">
           <h3 class="text-lg font-semibold mb-2">Índice de Gini (↓ menor desigualdad)</h3>
           <canvas id="chartGini" height="200"></canvas>
@@ -270,6 +272,11 @@
           <h3 class="text-lg font-semibold mb-2">IDH (0–1)</h3>
           <canvas id="chartHDI" height="200"></canvas>
         </div>
+      </div>
+
+      <div class="p-4 card rounded-2xl bg-white">
+        <h3 class="text-lg font-semibold mb-2">Inflación (IPC anual)</h3>
+        <canvas id="chartCPI" height="200"></canvas>
       </div>
 
       <div class="p-4 card rounded-2xl bg-white overflow-x-auto">
@@ -281,11 +288,13 @@
               <th class="text-right py-2 pr-4">PIB (USD)</th>
               <th class="text-right py-2 pr-4">Ingresos (USD)</th>
               <th class="text-right py-2 pr-4">Gasto (USD)</th>
+              <th class="text-right py-2 pr-4">Gasto %PIB</th>
               <th class="text-right py-2 pr-4">Saldo (USD)</th>
               <th class="text-right py-2 pr-4">Deuda (%PIB)</th>
               <th class="text-right py-2 pr-4">PIB pc</th>
               <th class="text-right py-2 pr-4">Gini</th>
               <th class="text-right py-2 pr-4">IDH</th>
+              <th class="text-right py-2 pr-4">IPC %</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -295,12 +304,9 @@
       <div class="p-4 card rounded-2xl bg-white">
         <h3 class="text-lg font-semibold mb-2">Notas del modelo (supuestos simplificados)</h3>
         <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
-          <li>Crecimiento del PIB potencial = 2.0% + impactos de oferta, fiscal y monetario (heurísticos). La inversión de capital público (capex) impulsa más el crecimiento que el gasto corriente.</li>
-          <li>Ingresos tributarios = carga tributaria objetivo * PIB, ajustados por mezcla de impuestos y “agujeros” por incentivos verdes.</li>
-          <li>Gasto público base = 21% del PIB; postura fiscal transita linealmente entre la inicial y la final en 5–10 años, afectando el gasto como % del PIB.</li>
-          <li>Deuda evoluciona por déficit/superávit, emisiones netas de bonos y un ajuste adicional según tendencia de deuda (progresivo/plano/regresivo).</li>
-          <li>PIB per cápita = PIB / población. Gini se mueve con progresividad y esfuerzo social; IDH responde a ingreso per cápita y esfuerzo social/infraestructura.</li>
-          <li><strong>Punto de equilibrio</strong> se muestra con una línea vertical en el gráfico cuando ingresos = gasto; también se ve el saldo con barras verdes/rojas.</li>
+          <li>El <strong>gasto %PIB</strong> combina base 21% con postura fiscal (transición 5–10 años) y una <em>tendencia</em> (plana/progresiva/regresiva) aplicada de forma relativa a través del horizonte.</li>
+          <li><strong>IPC</strong> (indicador de inflación) = inflación base + 0.6×(crec. base monetaria − crecimiento real) + presiones de proteccionismo/aduanas − parte del efecto de TPM real. Heurístico.</li>
+          <li>La emisión de dinero "expansiva" supone mayor crecimiento de base (presiona IPC); "contractiva" lo reduce.</li>
         </ul>
       </div>
     </section>
@@ -338,10 +344,12 @@
         fx: parseFloat(document.getElementById('fx').value || 0),
         protectionism: parseInt(document.getElementById('protectionism').value || 0),
         regulation: parseInt(document.getElementById('regulation').value || 0),
+        moneyIssuance: document.getElementById('moneyIssuance').value,
 
         fiscalStart: document.getElementById('fiscalStart').value,
         fiscalEnd: document.getElementById('fiscalEnd').value,
         fiscalYears: parseInt(document.getElementById('fiscalYears').value || 7),
+        spendTrend: document.getElementById('spendTrend').value,
 
         spendCurrent: parseFloat(document.getElementById('spendCurrent').value || 0)/100,
         spendCapital: parseFloat(document.getElementById('spendCapital').value || 0)/100,
@@ -360,7 +368,7 @@
         trendLeg: document.getElementById('trendLeg').value,
         trendRRII: document.getElementById('trendRRII').value,
 
-        debtTrend: document.getElementById('debtTrend').value,
+        debtTrend: document.getElementById('debtTrend')?.value || 'plano',
       };
     }
 
@@ -369,33 +377,28 @@
       return parts.map(x=> x/sum);
     }
 
-    // Tendencias lineales simples: progresiva (+10% relativo del punto de partida a fin), regresiva (-10%), plana (0)
+    // Tendencias lineales: progresiva (+10% relativo al final), regresiva (-10%), plana (0)
     function applyTrend(value0, trend, t){
-      const rel = trend==='progresiva' ? 1.10 : trend==='regresiva' ? 0.90 : 1.0;
-      const valueT = lerp(value0, value0*rel, t);
-      return valueT;
+      const relEnd = trend==='progresiva' ? 1.10 : trend==='regresiva' ? 0.90 : 1.0;
+      return lerp(value0, value0*relEnd, t);
     }
 
     // ===== Núcleo del modelo (heurístico) =====
-    function simulate(params){
-      const P = params;
+    function simulate(P){
       const years = Array.from({length: P.horizon}, (_,i)=> i+1);
 
       // Normalizar estructura gasto (corriente/capital)
       let [cur, cap] = normParts([P.spendCurrent, P.spendCapital]);
 
-      // Normalizar funciones del gasto y guardar base
+      // Normalizar funciones del gasto base
       let baseFun = normParts([P.funSocial, P.funAdmin, P.funInfra, P.funCultura, P.funLeg, P.funRRII]);
 
       // Postura fiscal: offsets sobre gasto %PIB
       const stanceToOffset = (s)=> s==='expansiva' ? 0.025 : -0.02;
-
       const transYears = clamp(P.fiscalYears, 5, 10);
 
-      const gdpRows = [];
-      let GDP = P.gdp0;
-      let popM = P.pop; // millones
-      let debtRatio = P.debt0/100;
+      // Monetaria: plan de emisión de dinero (crecimiento de base monetaria)
+      const moneyGrowth = (P.moneyIssuance==='expansiva') ? 0.08 : 0.01; // 8% vs 1% aprox.
 
       // Componentes de crecimiento (base + oferta + monetario + fiscal + capex)
       const basePotential = 0.02;
@@ -420,14 +423,17 @@
       const debtAdj = P.debtTrend==='progresivo' ? +0.003 : P.debtTrend==='regresivo' ? -0.003 : 0.0;
 
       const rows = [];
+      let GDP = P.gdp0;
+      let popM = P.pop; // millones
+      let debtRatio = P.debt0/100;
 
       years.forEach((yr, idx)=>{
         const t = years.length>1 ? idx/(years.length-1) : 1.0;
-        // Transición de postura fiscal
+        // Transición de postura fiscal (offset) y tendencia de gasto %PIB
         const stanceOffset = lerp(stanceToOffset(P.fiscalStart), stanceToOffset(P.fiscalEnd), clamp(idx/(transYears-1), 0, 1));
 
         // Capex impulsa crecimiento adicional
-        const capexBoost = cap * 0.01; // hasta +1 pp si 100% capex (irreal), normalmente ~+0.22 pp
+        const capexBoost = cap * 0.01; // hasta +1 pp si 100% capex
 
         const g = basePotential + openBoost + regPenalty + monPenalty + reservePenalty + greenTFP + capexBoost + (stanceOffset>0? stanceOffset*0.3 : stanceOffset*0.2);
         const growth = clamp(g, -0.03, 0.07);
@@ -435,22 +441,11 @@
         GDP = GDP * (1 + growth);
         popM = popM * 1.005; // crecimiento demográfico
 
-        // Estructura funcional con tendencias
-        const funNow = [
-          applyTrend(baseFun[0], P.trendSocial, t),
-          applyTrend(baseFun[1], P.trendAdmin, t),
-          applyTrend(baseFun[2], P.trendInfra, t),
-          applyTrend(baseFun[3], P.trendCultura, t),
-          applyTrend(baseFun[4], P.trendLeg, t),
-          applyTrend(baseFun[5], P.trendRRII, t)
-        ];
-        const funNorm = normParts(funNow);
-
-        // Gasto como % del PIB en este año (afectado por postura)
-        let spendRatio = clamp(spendBase + stanceOffset, 0.12, 0.35);
+        // Gasto como % del PIB en este año (afectado por postura y tendencia)
+        let spendRatio0 = clamp(spendBase + stanceOffset, 0.12, 0.35);
+        let spendRatio = applyTrend(spendRatio0, P.spendTrend, t);
 
         const revenues = effTaxRatioBase * GDP;
-        // Gasto: parte corriente y capital (ambas indexadas por inflación y población)
         const spendTotal = spendRatio * GDP * (1 + 0.2*P.inflation) * (1 + 0.1*(popM/P.pop - 1));
         const spendCorr = spendTotal * cur;
         const spendCap = spendTotal * cap;
@@ -465,16 +460,21 @@
         const debtChange = netBorrowing - Math.max(0, -primaryNeed-policyDebtNeed)/GDP;
         debtRatio = clamp(debtRatio + debtChange, 0, 1.5);
 
-        // Indicadores
+        // Indicadores sociales
         const gdpPC = GDP / (popM*1e6);
-        const progressivity = clamp((P.indTax - 0.12) * 3 + (spendRatio - 0.21) * 2 + (funNorm[0]-0.35), -0.10, 0.12);
+        const progressivity = clamp((P.indTax - 0.12) * 3 + (spendRatio - 0.21) * 2 + (applyTrend(baseFun[0], P.trendSocial, t)-0.35), -0.10, 0.12);
         const opennessIneq = (openness>0.7? 0.01 : 0) - (openness<0.3? -0.005 : 0);
         let gini = clamp(0.44 - progressivity + opennessIneq, 0.26, 0.60);
         const hdiIncome = clamp((Math.log(gdpPC) - Math.log(2000)) / (Math.log(60000) - Math.log(2000)), 0, 1);
-        const socialEffort = clamp(spendRatio*2 + P.greenIncentives*20 + funNorm[2]*0.5, 0, 1);
+        const socialEffort = clamp(spendRatio*2 + P.greenIncentives*20 + applyTrend(baseFun[2], P.trendInfra, t)*0.5, 0, 1);
         const hdi = clamp(0.6*hdiIncome + 0.4*socialEffort, 0.35, 0.98);
 
-        rows.push({ year: yr, GDP, revenues, spendTotal, spendCorr, spendCap, balance, debtRatio, gdpPC, gini, hdi });
+        // IPC (inflación anual)
+        const tradePressure = (P.protectionism/100)*0.04 + clamp(P.tariff-0.05, -0.05, 0.10); // hasta ~4 pp por proteccionismo alto + aranceles
+        const tpmBrake = 0.25*Math.max(0, rateGap); // frena una parte si TPM real positiva
+        const cpi = clamp(P.inflation + 0.6*(moneyGrowth - growth) + 0.3*tradePressure - tpmBrake, -0.02, 0.25); // -2% a 25%
+
+        rows.push({ year: yr, GDP, revenues, spendTotal, spendCorr, spendCap, balance, debtRatio, gdpPC, gini, hdi, spendPct: spendRatio, cpi });
       });
 
       // Punto(s) de equilibrio: primer cruce
@@ -491,7 +491,7 @@
     }
 
     // ===== Render =====
-    let chartRevExp, chartDebt, chartGDPpc, chartGini, chartHDI, chartBalance;
+    let chartRevExp, chartDebt, chartGDPpc, chartGini, chartHDI, chartBalance, chartSpendPct, chartCPI;
 
     function run(){
       const params = readInputs();
@@ -503,18 +503,19 @@
       const growthApprox = (Math.pow(out.rows.at(-1).GDP/params.gdp0, 1/out.rows.length)-1)*100;
       const spend0 = out.rows[0].spendTotal/out.rows[0].GDP*100;
       const rev0 = out.rows[0].revenues/out.rows[0].GDP*100;
+      const ipcAvg = out.rows.reduce((a,r)=>a+r.cpi,0)/out.rows.length*100;
       sum.innerHTML = `
         <div>
           <p><strong>Crecimiento anual medio:</strong> ${growthApprox.toFixed(2)}%</p>
-          <p><strong>Gasto %PIB (año 1):</strong> ${spend0.toFixed(1)}%</p>
+          <p><strong>Gasto %PIB (año 1):</strong> ${spend0.toFixed(1)}% <span class="text-slate-500">(tendencia: ${params.spendTrend})</span></p>
         </div>
         <div>
           <p><strong>Ingresos %PIB (año 1):</strong> ${rev0.toFixed(1)}%</p>
           <p><strong>Punto de equilibrio requerido (año 1):</strong> ${(out.neededTaxRatio*100).toFixed(1)}%</p>
         </div>
         <div>
-          <p><span class="badge bg-emerald-100 text-emerald-700">Corriente</span> ${(out.rows[0].spendCorr/out.rows[0].spendTotal*100).toFixed(0)}% &nbsp; <span class="badge bg-indigo-100 text-indigo-700">Capital</span> ${(out.rows[0].spendCap/out.rows[0].spendTotal*100).toFixed(0)}%</p>
-          <p class="text-slate-500">Postura fiscal transita de <strong>${params.fiscalStart}</strong> a <strong>${params.fiscalEnd}</strong> en ${clamp(params.fiscalYears,5,10)} años.</p>
+          <p><strong>Plan de emisión de dinero:</strong> ${params.moneyIssuance}</p>
+          <p><strong>IPC medio (horizonte):</strong> ${ipcAvg.toFixed(2)}%</p>
         </div>
       `;
 
@@ -526,11 +527,13 @@
           <td class="text-right py-1 pr-4">$${fmt.format(r.GDP)}</td>
           <td class="text-right py-1 pr-4">$${fmt.format(r.revenues)}</td>
           <td class="text-right py-1 pr-4">$${fmt.format(r.spendTotal)}</td>
+          <td class="text-right py-1 pr-4">${fmt2.format(r.spendPct*100)}%</td>
           <td class="text-right py-1 pr-4 ${r.balance>=0?'text-emerald-700':'text-rose-700'}">$${fmt.format(r.balance)}</td>
           <td class="text-right py-1 pr-4">${fmt2.format(r.debtRatio*100)}%</td>
           <td class="text-right py-1 pr-4">$${fmt2.format(r.gdpPC)}</td>
           <td class="text-right py-1 pr-4">${fmt2.format(r.gini)}</td>
           <td class="text-right py-1 pr-4">${fmt2.format(r.hdi)}</td>
+          <td class="text-right py-1 pr-4">${fmt2.format(r.cpi*100)}%</td>
         </tr>
       `).join('');
 
@@ -539,19 +542,23 @@
       const rev = out.rows.map(r=>r.revenues);
       const exp = out.rows.map(r=>r.spendTotal);
       const bal = out.rows.map(r=>r.balance);
+      const spendPct = out.rows.map(r=>r.spendPct*100);
       const debt = out.rows.map(r=>r.debtRatio*100);
       const gdppc = out.rows.map(r=>r.gdpPC);
       const gini = out.rows.map(r=>r.gini);
       const hdi = out.rows.map(r=>r.hdi);
+      const cpi = out.rows.map(r=>r.cpi*100);
 
       const ctx1 = document.getElementById('chartRevExp').getContext('2d');
       const ctxBal = document.getElementById('chartBalance').getContext('2d');
+      const ctxSpend = document.getElementById('chartSpendPct').getContext('2d');
       const ctx2 = document.getElementById('chartDebt').getContext('2d');
       const ctx3 = document.getElementById('chartGDPpc').getContext('2d');
       const ctx4 = document.getElementById('chartGini').getContext('2d');
       const ctx5 = document.getElementById('chartHDI').getContext('2d');
+      const ctxCPI = document.getElementById('chartCPI').getContext('2d');
 
-      if(chartRevExp){ chartRevExp.destroy(); chartBalance.destroy(); chartDebt.destroy(); chartGDPpc.destroy(); chartGini.destroy(); chartHDI.destroy(); }
+      if(chartRevExp){ chartRevExp.destroy(); chartBalance.destroy(); chartSpendPct.destroy(); chartDebt.destroy(); chartGDPpc.destroy(); chartGini.destroy(); chartHDI.destroy(); chartCPI.destroy(); }
 
       // Ingresos vs Gasto con línea de equilibrio (anotación)
       const annotations = {};
@@ -583,10 +590,12 @@
         type: 'line', data: { labels, datasets: [{ label, data }] }, options: { responsive:true, plugins:{ legend:{display:true} }, scales:{ x:{ grid:{display:false} }, y:{ beginAtZero:false } } }
       });
 
+      chartSpendPct = cfgLine(ctxSpend, 'Gasto %PIB', spendPct);
       chartDebt = cfgLine(ctx2, 'Deuda %PIB', debt);
       chartGDPpc = cfgLine(ctx3, 'PIB per cápita', gdppc);
       chartGini = cfgLine(ctx4, 'Índice de Gini', gini);
       chartHDI = cfgLine(ctx5, 'IDH', hdi);
+      chartCPI = cfgLine(ctxCPI, 'IPC %', cpi);
     }
 
     // Exportar escenario
