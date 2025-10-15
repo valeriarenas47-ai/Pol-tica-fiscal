@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Políticas: Fiscal, Monetaria y Oferta</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="description" content="Simulador educativo para proyectar ingresos, gasto público, deuda y efectos en IDH, PIB per cápita e índice de Gini bajo distintos escenarios de política fiscal, monetaria y del lado de la oferta." />
+  <style>
+    /* Suave brillo para tarjetas */
+    .card { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+    .grid-autofit { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
+    .number-input { appearance:textfield; }
+    .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl md:text-3xl font-semibold">Simulador de Políticas: Fiscal, Monetaria y Oferta</h1>
+      <button id="btnExport" class="px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-sm">Exportar escenario (.json)</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <section class="mb-6 p-4 card rounded-2xl bg-white">
+      <h2 class="text-xl font-semibold mb-2">Descripción</h2>
+      <p class="text-sm text-slate-600">Herramienta educativa lista para subir a Netlify (un solo archivo). Permite simular proyecciones a 5 años de ingresos tributarios, gasto público, déficit/superávit, deuda del Estado y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>, dados parámetros de política fiscal, monetaria y de oferta. <em>Modelo heurístico simplificado con supuestos transparentes</em> para fines didácticos.</p>
+    </section>
+
+    <!-- Parámetros globales -->
+    <section class="mb-6 p-4 card rounded-2xl bg-white">
+      <h2 class="text-xl font-semibold mb-4">1) Supuestos macro iniciales</h2>
+      <div class="grid-autofit">
+        <label class="block">PIB inicial (USD)
+          <input id="gdp0" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="200000000000" />
+        </label>
+        <label class="block">Población (millones)
+          <input id="pop" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="19.5" />
+        </label>
+        <label class="block">Deuda pública inicial (% del PIB)
+          <input id="debt0" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="40" />
+        </label>
+        <label class="block">Inflación anual esperada (%)
+          <input id="inflation" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="4" />
+        </label>
+        <label class="block">Horizonte (años)
+          <input id="horizon" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" min="2" max="30" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Políticas -->
+    <section class="mb-6 p-4 card rounded-2xl bg-white">
+      <h2 class="text-xl font-semibold mb-4">2) Controles de política</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Fiscal -->
+        <div>
+          <h3 class="text-lg font-semibold mb-2">Fiscal</h3>
+          <div class="grid-autofit">
+            <label class="block">Tipo de política fiscal
+              <select id="fiscalStance" class="mt-1 w-full rounded-xl border-slate-300">
+                <option value="expansiva">Expansiva</option>
+                <option value="contractiva">Contractiva</option>
+              </select>
+            </label>
+            <label class="block">Carga tributaria objetivo (% del PIB)
+              <input id="taxBurden" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="23" />
+            </label>
+            <label class="block">% Impuesto a empresas (tasa)
+              <input id="corpTax" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="25" />
+            </label>
+            <label class="block">% Impuesto al individuo (tasa promedio)
+              <input id="indTax" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="15" />
+            </label>
+            <label class="block">Impuestos aduaneros (% promedio)
+              <input id="tariff" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" />
+            </label>
+            <label class="block">Incentivos fiscales medioambientales (% del PIB, gasto tributario)
+              <input id="greenIncentives" type="number" step="0.05" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.5" />
+            </label>
+            <label class="block">Emisión/venta de bonos (USD anuales)
+              <input id="bondIssuance" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="2000000000" />
+            </label>
+          </div>
+        </div>
+        <!-- Monetaria y Oferta -->
+        <div>
+          <h3 class="text-lg font-semibold mb-2">Monetaria y Oferta</h3>
+          <div class="grid-autofit">
+            <label class="block">Tasa de política monetaria (TPM, %)
+              <input id="policyRate" type="number" step="0.25" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5.5" />
+            </label>
+            <label class="block">Encaje bancario (% de depósitos)
+              <input id="reserveReq" type="number" step="0.5" class="number-input mt-1 w-full rounded-xl border-slate-300" value="9" />
+            </label>
+            <label class="block">Tipo de cambio (USD por moneda local) — proxy
+              <input id="fx" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.0011" />
+            </label>
+            <label class="block">Nivel de proteccionismo (0=libre, 100=alto)
+              <input id="protectionism" type="range" min="0" max="100" value="20" class="w-full" />
+            </label>
+            <label class="block">Regulaciones del mercado (0=bajas, 100=altas)
+              <input id="regulation" type="range" min="0" max="100" value="40" class="w-full" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex gap-3">
+        <button id="btnRun" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Calcular proyección</button>
+        <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Restablecer</button>
+      </div>
+    </section>
+
+    <!-- Resultados -->
+    <section id="results" class="hidden space-y-6">
+      <div class="p-4 card rounded-2xl bg-white">
+        <h2 class="text-xl font-semibold mb-3">3) Resumen del escenario</h2>
+        <div id="summary" class="text-sm grid md:grid-cols-2 gap-4"></div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">Ingresos vs. Gasto público</h3>
+          <canvas id="chartRevExp" height="200"></canvas>
+        </div>
+        <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">Deuda pública (% del PIB)</h3>
+          <canvas id="chartDebt" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">PIB per cápita (USD)</h3>
+          <canvas id="chartGDPpc" height="200"></canvas>
+        </div>
+        <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">Índice de Gini (↓ es menor desigualdad)</h3>
+          <canvas id="chartGini" height="200"></canvas>
+        </div>
+        <div class="p-4 card rounded-2xl bg-white">
+          <h3 class="text-lg font-semibold mb-2">IDH (0–1)</h3>
+          <canvas id="chartHDI" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="p-4 card rounded-2xl bg-white overflow-x-auto">
+        <h3 class="text-lg font-semibold mb-3">Tabla de proyección (valores aproximados)</h3>
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="text-left py-2 pr-4">Año</th>
+              <th class="text-right py-2 pr-4">PIB (USD)</th>
+              <th class="text-right py-2 pr-4">Ingresos (USD)</th>
+              <th class="text-right py-2 pr-4">Gasto (USD)</th>
+              <th class="text-right py-2 pr-4">Saldo (USD)</th>
+              <th class="text-right py-2 pr-4">Deuda (%PIB)</th>
+              <th class="text-right py-2 pr-4">PIB pc</th>
+              <th class="text-right py-2 pr-4">Gini</th>
+              <th class="text-right py-2 pr-4">IDH</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="p-4 card rounded-2xl bg-white">
+        <h3 class="text-lg font-semibold mb-2">Notas del modelo (supuestos simplificados)</h3>
+        <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
+          <li>Crecimiento del PIB potencial = 2.0% + impactos de oferta, fiscal y monetario (heurísticos). Exceso de proteccionismo, regulaciones y tasas altas reducen el crecimiento; incentivos verdes y apertura moderada lo elevan.</li>
+          <li>Ingresos tributarios = carga tributaria objetivo * PIB, ajustados por mezcla de impuestos (empresas/individuos/aduanas) y “agujeros” por incentivos verdes.</li>
+          <li>Gasto público base = 21% del PIB; política fiscal expansiva suma +2.5 pp, contractiva resta −2.0 pp; además crece con inflación y población (servicios).</li>
+          <li>Deuda evoluciona por déficit/superávit y emisiones netas de bonos especificadas.</li>
+          <li>PIB per cápita = PIB / población. Gini se mueve inversamente a progresividad y gasto social; IDH responde a ingreso per cápita y esfuerzo social (gasto e incentivos verdes).</li>
+          <li><strong>Punto de equilibrio</strong> = nivel de carga tributaria equivalente (como % del PIB) necesario para saldo fiscal 0 en el año 1, reportado en el resumen.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 pb-10 text-xs text-slate-500">
+    <p>© 2025 Simulador educativo. Uso didáctico, no sustituye modelos econométricos formales.</p>
+  </footer>
+
+  <script>
+    // ===== Utilidades =====
+    const fmt = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 });
+    const fmt2 = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 });
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+    function readInputs(){
+      return {
+        gdp0: parseFloat(document.getElementById('gdp0').value || 0),
+        pop: parseFloat(document.getElementById('pop').value || 0),
+        debt0: parseFloat(document.getElementById('debt0').value || 0),
+        inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
+        horizon: parseInt(document.getElementById('horizon').value || 5),
+        fiscalStance: document.getElementById('fiscalStance').value,
+        taxBurden: parseFloat(document.getElementById('taxBurden').value || 0)/100,
+        corpTax: parseFloat(document.getElementById('corpTax').value || 0)/100,
+        indTax: parseFloat(document.getElementById('indTax').value || 0)/100,
+        tariff: parseFloat(document.getElementById('tariff').value || 0)/100,
+        greenIncentives: parseFloat(document.getElementById('greenIncentives').value || 0)/100,
+        bondIssuance: parseFloat(document.getElementById('bondIssuance').value || 0),
+        policyRate: parseFloat(document.getElementById('policyRate').value || 0)/100,
+        reserveReq: parseFloat(document.getElementById('reserveReq').value || 0)/100,
+        fx: parseFloat(document.getElementById('fx').value || 0),
+        protectionism: parseInt(document.getElementById('protectionism').value || 0),
+        regulation: parseInt(document.getElementById('regulation').value || 0),
+      };
+    }
+
+    // ===== Núcleo del modelo (heurístico) =====
+    function simulate(params){
+      const {
+        gdp0, pop, debt0, inflation, horizon,
+        fiscalStance, taxBurden, corpTax, indTax, tariff, greenIncentives,
+        bondIssuance, policyRate, reserveReq, fx, protectionism, regulation
+      } = params;
+
+      const years = Array.from({length: horizon}, (_,i)=> i+1);
+
+      // Crecimiento potencial base y ajustes
+      const basePotential = 0.02; // 2%
+
+      // Oferta: apertura y regulación
+      const openness = 1 - clamp(protectionism/100, 0, 1); // 0..1
+      const regulationIdx = clamp(regulation/100, 0, 1);   // 0..1
+
+      // Efecto apertura (no lineal suave)
+      const openBoost = (openness-0.5)*0.02; // ±1 pp
+      const regPenalty = - regulationIdx*0.015; // hasta −1.5 pp
+
+      // Monetaria: TPM y encaje — penalidad si muy restrictivo
+      const rateGap = policyRate - inflation; // real ex-ante aprox.
+      const monPenalty = clamp(rateGap, -0.03, 0.05) * -0.4; // si real alta => negativo
+      const reservePenalty = - clamp(reserveReq, 0, 0.4) * 0.05; // máx −2 pp
+
+      // Fiscal (output gap vía multiplicador)
+      const stanceBoost = (fiscalStance === 'expansiva') ? 0.0075 : -0.005; // ±0.75 pp ~ −0.5 pp
+
+      // Incentivos verdes: ligera mejora de PTF
+      const greenTFP = clamp(greenIncentives, 0, 0.01) * 0.6; // máx +0.6 pp si 1% PIB
+
+      // Crecimiento final anual constante para el horizonte (simplif.)
+      const g = basePotential + openBoost + regPenalty + monPenalty + reservePenalty + stanceBoost + greenTFP;
+      const growth = clamp(g, -0.03, 0.07); // entre −3% y 7%
+
+      // Gasto público como %PIB base + ajuste por postura fiscal
+      let spendRatio = 0.21 + (fiscalStance==='expansiva' ? 0.025 : -0.02);
+      spendRatio = clamp(spendRatio, 0.12, 0.35);
+
+      // Ingresos tributarios: partimos de carga objetivo y ajustamos por composición y "agujeros" verdes
+      const compAdj = (0.45*corpTax/0.25) + (0.45*indTax/0.15) + (0.10*tariff/0.05); // ponderaciones heurísticas
+      // Incentivos verdes disminuyen recaudación efectiva
+      const greenHole = greenIncentives; // %PIB
+      let effTaxRatio = clamp(taxBurden * clamp(compAdj, 0.6, 1.4) - greenHole, 0.05, 0.45);
+
+      // Trayectorias
+      const rows = [];
+      let GDP = gdp0;
+      let popM = pop; // millones
+      let debtRatio = debt0/100; // %PIB → fracción
+
+      years.forEach((yr, idx)=>{
+        // Actualizar PIB
+        GDP = GDP * (1 + growth);
+        // Población: crecimiento demográfico modesto 0.5% anual (podría hacerse input)
+        popM = popM * 1.005;
+
+        const revenues = effTaxRatio * GDP; // USD
+        // Gasto sensible a inflación (proxy) y población (servicios):
+        const spend = spendRatio * GDP * (1 + 0.2*inflation) * (1 + 0.1*(popM/pop - 1));
+
+        // Saldo fiscal y deuda
+        const balance = revenues - spend; // + superávit
+        const primaryNeed = -balance; // necesidades de financiamiento positivas si déficit
+        // Emisión de bonos reduce necesidad; excedente reduce deuda
+        const netBorrowing = Math.max(0, primaryNeed - bondIssuance) / GDP; // como %PIB
+        const debtChange = netBorrowing - Math.max(0, -primaryNeed)/GDP; // si superávit, resta
+        debtRatio = clamp(debtRatio + debtChange, 0, 1.5);
+
+        // Indicadores sociales
+        const gdpPC = GDP / (popM*1e6);
+        // Gini base 0.44, baja con más progresividad y gasto; sube con apertura extrema sin red
+        const progressivity = clamp((indTax - 0.12) * 3 + (spendRatio - 0.21) * 2, -0.08, 0.08);
+        const opennessIneq = (openness>0.7? 0.01 : 0) - (openness<0.3? -0.005 : 0);
+        let gini = clamp(0.44 - progressivity + opennessIneq, 0.26, 0.60);
+        // IDH proxy: normalizamos PIB pc y gasto social
+        const hdiIncome = clamp((Math.log(gdpPC) - Math.log(2000)) / (Math.log(60000) - Math.log(2000)), 0, 1);
+        const socialEffort = clamp(spendRatio*2 + greenIncentives*20, 0, 1);
+        const hdi = clamp(0.6*hdiIncome + 0.4*socialEffort, 0.35, 0.98);
+
+        rows.push({
+          year: yr,
+          GDP, revenues, spend, balance, debtRatio, gdpPC, gini, hdi
+        });
+      });
+
+      // Punto de equilibrio (año 1): ¿qué carga tributaria haría saldo = 0?
+      const y1 = rows[0];
+      const neededTaxRatio = clamp((y1.spend / y1.GDP) + greenHole, 0, 0.60); // %PIB incluyendo agujero verde
+
+      return { years, rows, growth, spendRatio, effTaxRatio, neededTaxRatio };
+    }
+
+    // ===== Render =====
+    let chartRevExp, chartDebt, chartGDPpc, chartGini, chartHDI;
+
+    function run(){
+      const params = readInputs();
+      const out = simulate(params);
+      document.getElementById('results').classList.remove('hidden');
+
+      // Resumen
+      const sum = document.getElementById('summary');
+      sum.innerHTML = `
+        <div>
+          <p><strong>Crecimiento anual simulado:</strong> ${(out.growth*100).toFixed(2)}%</p>
+          <p><strong>Gasto público base:</strong> ${(out.spendRatio*100).toFixed(1)}% del PIB</p>
+          <p><strong>Carga tributaria efectiva:</strong> ${(out.effTaxRatio*100).toFixed(1)}% del PIB</p>
+        </div>
+        <div>
+          <p><strong>Punto de equilibrio (año 1):</strong> ${(out.neededTaxRatio*100).toFixed(1)}% del PIB en ingresos tributarios totales</p>
+          <p class="text-slate-500">(manteniendo demás parámetros constantes)</p>
+        </div>
+      `;
+
+      // Tabla
+      const tb = document.getElementById('tableBody');
+      tb.innerHTML = out.rows.map(r=>`
+        <tr class="border-b">
+          <td class="py-1 pr-4">${r.year}</td>
+          <td class="text-right py-1 pr-4">$${fmt.format(r.GDP)}</td>
+          <td class="text-right py-1 pr-4">$${fmt.format(r.revenues)}</td>
+          <td class="text-right py-1 pr-4">$${fmt.format(r.spend)}</td>
+          <td class="text-right py-1 pr-4 ${r.balance>=0?'text-emerald-700':'text-rose-700'}">$${fmt.format(r.balance)}</td>
+          <td class="text-right py-1 pr-4">${fmt2.format(r.debtRatio*100)}%</td>
+          <td class="text-right py-1 pr-4">$${fmt2.format(r.gdpPC)}</td>
+          <td class="text-right py-1 pr-4">${fmt2.format(r.gini)}</td>
+          <td class="text-right py-1 pr-4">${fmt2.format(r.hdi)}</td>
+        </tr>
+      `).join('');
+
+      // Gráficos
+      const labels = out.rows.map(r=>`Año ${r.year}`);
+      const rev = out.rows.map(r=>r.revenues);
+      const exp = out.rows.map(r=>r.spend);
+      const debt = out.rows.map(r=>r.debtRatio*100);
+      const gdppc = out.rows.map(r=>r.gdpPC);
+      const gini = out.rows.map(r=>r.gini);
+      const hdi = out.rows.map(r=>r.hdi);
+
+      const cfgLine = (ctx, label, data)=> new Chart(ctx, {
+        type: 'line', data: { labels, datasets: [{ label, data }] }, options: { responsive:true, plugins:{ legend:{display:true} }, scales:{ x:{ grid:{display:false} }, y:{ beginAtZero:false } } }
+      });
+
+      const ctx1 = document.getElementById('chartRevExp').getContext('2d');
+      const ctx2 = document.getElementById('chartDebt').getContext('2d');
+      const ctx3 = document.getElementById('chartGDPpc').getContext('2d');
+      const ctx4 = document.getElementById('chartGini').getContext('2d');
+      const ctx5 = document.getElementById('chartHDI').getContext('2d');
+
+      if(chartRevExp) { chartRevExp.destroy(); chartDebt.destroy(); chartGDPpc.destroy(); chartGini.destroy(); chartHDI.destroy(); }
+
+      chartRevExp = new Chart(ctx1, { type:'line', data: { labels, datasets:[
+        { label:'Ingresos', data: rev }, { label:'Gasto', data: exp }
+      ]}, options:{ responsive:true, plugins:{ legend:{display:true} }, scales:{ x:{ grid:{display:false} } } } });
+      chartDebt = cfgLine(ctx2, 'Deuda %PIB', debt);
+      chartGDPpc = cfgLine(ctx3, 'PIB per cápita', gdppc);
+      chartGini = cfgLine(ctx4, 'Índice de Gini', gini);
+      chartHDI = cfgLine(ctx5, 'IDH', hdi);
+    }
+
+    // Exportar escenario
+    function exportScenario(){
+      const params = readInputs();
+      const out = simulate(params);
+      const payload = { params, out, generatedAt: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'escenario-politicas.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Reset
+    function reset(){
+      document.querySelectorAll('input').forEach(el=> el.value = el.defaultValue);
+      document.getElementById('fiscalStance').value = 'expansiva';
+      document.getElementById('results').classList.add('hidden');
+    }
+
+    document.getElementById('btnRun').addEventListener('click', run);
+    document.getElementById('btnReset').addEventListener('click', reset);
+    document.getElementById('btnExport').addEventListener('click', exportScenario);
+
+    // Run inicial
+    run();
+  </script>
+</body>
+</html>
