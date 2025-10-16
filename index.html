@@ -259,12 +259,10 @@
 
     function readInputs(){
       return {
-        gdp0: parseFloat(document.getElementById('gdp0').value || 0),
         pop: parseFloat(document.getElementById('pop').value || 0),
         debt0: parseFloat(document.getElementById('debt0').value || 0),
         debtTrend: document.getElementById('debtTrend').value,
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
-        growthPct: parseFloat(document.getElementById('growthPct').value || 0)/100,
         horizon: parseInt(document.getElementById('horizon').value || 5),
 
         revenueMethod: document.getElementById('revenueMethod').value,
