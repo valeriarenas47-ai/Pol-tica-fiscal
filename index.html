@@ -190,7 +190,6 @@
       <div class="grid lg:grid-cols-3 gap-6">
         <div class="p-4 card rounded-2xl bg-white">
           <h3 class="text-lg font-semibold mb-2">PIB per cápita (USD)</h3>
-          <canvas id="chartGDPpc" height="200"></canvas>
         </div>
         <div class="p-4 card rounded-2xl bg-white">
           <h3 class="text-lg font-semibold mb-2">Índice de Gini (↓ menor desigualdad)</h3>
@@ -251,8 +250,8 @@
   
   <script>
     // ===== Utilidades =====
-      function growthFromForecast(forecast){
-switch (forecast) {
+   function growthFromForecast(forecast){
+    switch (forecast) {
     case 'crecimiento':return 0.02;   
     case 'estancamiento':return 0.00;   
     case 'recesion':return -0.02; 
@@ -276,6 +275,7 @@ switch (forecast) {
         debtTrend: document.getElementById('debtTrend').value,
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
         horizon: parseInt(document.getElementById('horizon').value || 5),
+        gdpForecast: document.getElementById('gdpForecast').value,
 
         revenueMethod: document.getElementById('revenueMethod').value,
         taxBurden: parseFloat(document.getElementById('taxBurden').value || 0)/100,
@@ -316,8 +316,6 @@ switch (forecast) {
       years.forEach((yr, idx)=>{
       const growth = clamp(growthFromForecast(P.gdpForecast), -0.10, 0.20);
       GDP = GDP * (1 + growth);
-
-        popM = popM * 1.005; // crecimiento demográfico suave
 
         // Postura fiscal para gasto %PIB
         const stanceToOffset = (s)=> s==='expansiva' ? 0.025 : -0.02;
