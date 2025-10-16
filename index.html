@@ -124,6 +124,13 @@
             <label class="block">Tasa de política monetaria (TPM, %)
               <input id="policyRate" type="number" step="0.25" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5.5" />
             </label>
+            <label class="block">Postura de política monetaria
+              <select id="monetaryTrend" class="mt-1 w-full rounded-xl border-slate-300">
+                <option value="plana" selected>Plana</option>
+                <option value="progresiva">Progresiva (↑ TPM en el tiempo)</option>
+                <option value="regresiva">Regresiva (↓ TPM en el tiempo)</option>
+              </select>
+            </label>
             <label class="block">Encaje bancario (% de depósitos)
               <input id="reserveReq" type="number" step="0.5" class="number-input mt-1 w-full rounded-xl border-slate-300" value="9" />
             </label>
@@ -187,6 +194,11 @@
         <canvas id="chartCPI" height="200"></canvas>
       </div>
 
+      <div class="p-4 card rounded-2xl bg-white">
+        <h3 class="text-lg font-semibold mb-2">Tasa de Política Monetaria (TPM, %)</h3>
+        <canvas id="chartTPM" height="200"></canvas>
+      </div>
+
       <div class="p-4 card rounded-2xl bg-white overflow-x-auto">
         <h3 class="text-lg font-semibold mb-3">Tabla de proyección (valores aproximados)</h3>
         <table class="min-w-full text-sm">
@@ -247,6 +259,7 @@
         greenIncentives: parseFloat(document.getElementById('greenIncentives').value || 0)/100,
 
         policyRate: parseFloat(document.getElementById('policyRate').value || 0)/100,
+        monetaryTrend: document.getElementById('monetaryTrend').value,
         reserveReq: parseFloat(document.getElementById('reserveReq').value || 0)/100,
 
         fiscalStart: document.getElementById('fiscalStart').value,
@@ -272,8 +285,7 @@
 
       // Componentes de crecimiento (base + monetario + fiscal)
       const basePotential = 0.02;
-      const rateGap = P.policyRate - P.inflation; // real ex-ante aprox.
-      const monPenalty = clamp(rateGap, -0.03, 0.05) * -0.4; // TPM real muy alta frena
+      // rateGap y monPenalty se calculan por año usando la TPM ajustada por la postura monetaria // TPM real muy alta frena
 
       const rows = [];
       let GDP = P.gdp0;
@@ -291,7 +303,10 @@
         // Transición de postura fiscal
         const stanceOffset = lerp(stanceToOffset(P.fiscalStart), stanceToOffset(P.fiscalEnd), clamp(idx/(transYears-1), 0, 1));
 
-        const g = clamp(basePotential + monPenalty + (stanceOffset>0? stanceOffset*0.3 : stanceOffset*0.2), -0.03, 0.07);
+        const policyRate_t = applyTrend(P.policyRate, P.monetaryTrend, t);
+        const rateGap_t = policyRate_t - P.inflation;
+        const monPenalty_t = clamp(rateGap_t, -0.03, 0.05) * -0.4;
+        const g = clamp(basePotential + monPenalty_t + (stanceOffset>0? stanceOffset*0.3 : stanceOffset*0.2), -0.03, 0.07);
         GDP = GDP * (1 + g);
         popM = popM * 1.005; // crecimiento demográfico
 
@@ -343,7 +358,7 @@
     }
 
     // ===== Render =====
-    let chartRevExp, chartDebt, chartGDPpc, chartGini, chartHDI, chartBalance, chartSpendPct, chartCPI;
+    let chartRevExp, chartDebt, chartGDPpc, chartGini, chartHDI, chartBalance, chartSpendPct, chartCPI, chartTPM;
 
     function run(){
       const params = readInputs();
@@ -366,8 +381,9 @@
           <p class="text-slate-500">${methodText}</p>
         </div>
         <div>
-          <p><strong>Deuda inicial:</strong> ${fmt2.format(params.debt0)}% del PIB <span class="text-slate-500">(tendencia: ${params.debtTrend})</span></p>
-          <p><strong>IPC (constante):</strong> ${fmt2.format(params.inflation*100)}%</p>
+          <p><strong>Postura monetaria:</strong> \${params.monetaryTrend} <span class="text-slate-500">(TPM inicial \${(params.policyRate*100).toFixed(2)}%)</span></p>
+          <p><strong>Deuda inicial:</strong> \${fmt2.format(params.debt0)}% del PIB <span class="text-slate-500">(tendencia: \${params.debtTrend})</span></p>
+          <p><strong>IPC (constante):</strong> \${fmt2.format(params.inflation*100)}%</p>
         </div>
       `;
 
@@ -400,6 +416,10 @@
       const gini = out.rows.map(r=>r.gini);
       const hdi = out.rows.map(r=>r.hdi);
       const cpi = out.rows.map(r=>r.cpi*100);
+      const tpm = out.rows.map((r, idx) => {
+        const t = out.rows.length>1 ? idx/(out.rows.length-1) : 1.0;
+        return applyTrend(params.policyRate, params.monetaryTrend, t) * 100;
+      });
 
       const ctx1 = document.getElementById('chartRevExp').getContext('2d');
       const ctxBal = document.getElementById('chartBalance').getContext('2d');
@@ -409,8 +429,9 @@
       const ctx4 = document.getElementById('chartGini').getContext('2d');
       const ctx5 = document.getElementById('chartHDI').getContext('2d');
       const ctxCPI = document.getElementById('chartCPI').getContext('2d');
+      const ctxTPM = document.getElementById('chartTPM').getContext('2d');
 
-      if(chartRevExp){ chartRevExp.destroy(); chartBalance.destroy(); chartSpendPct.destroy(); chartDebt.destroy(); chartGDPpc.destroy(); chartGini.destroy(); chartHDI.destroy(); chartCPI.destroy(); }
+      if(chartRevExp){ chartRevExp.destroy(); chartBalance.destroy(); chartSpendPct.destroy(); chartDebt.destroy(); chartGDPpc.destroy(); chartGini.destroy(); chartHDI.destroy(); chartCPI.destroy(); chartTPM.destroy(); }
 
       // Ingresos vs Gasto con línea de equilibrio (anotación)
       const annotations = {};
@@ -448,6 +469,7 @@
       chartGini = cfgLine(ctx4, 'Índice de Gini', gini);
       chartHDI = cfgLine(ctx5, 'IDH', hdi);
       chartCPI = cfgLine(ctxCPI, 'IPC %', cpi);
+      chartTPM = cfgLine(ctxTPM, 'TPM %', tpm);
     }
 
     // Exportar escenario
