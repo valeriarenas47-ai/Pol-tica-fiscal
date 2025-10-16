@@ -27,7 +27,7 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-2">Descripción</h2>
-      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong> (por <strong>carga tributaria %PIB</strong> o <strong>nivel base</strong>), <strong>gasto público %PIB</strong> (con tendencia y ajuste manual), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda %PIB</strong> (con tendencia), <strong>IPC</strong> (constante) y <strong>TPM</strong> (con postura).</p>
+      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong> (por <strong>carga tributaria %PIB</strong> o <strong>nivel base</strong>), <strong>gasto público %PIB</strong> (con tendencia y ajuste manual), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda %PIB</strong> (con tendencia), <strong>IPC</strong> y <strong>TPM</strong> (con postura).</p>
     </section>
 
     <!-- Supuestos macro -->
@@ -244,7 +244,14 @@
       </div>
     </section>
   </main>
-  function growthFromForecast(forecast){
+ 
+  <footer class="max-w-7xl mx-auto px-4 pb-10 text-xs text-slate-500">
+    <p>© 2025 Simulador educativo. Uso didáctico, no sustituye modelos econométricos formales.</p>
+  </footer>
+  
+  <script>
+    // ===== Utilidades =====
+      function growthFromForecast(forecast){
 switch (forecast) {
     case 'crecimiento':return 0.02;   
     case 'estancamiento':return 0.00;   
@@ -252,12 +259,6 @@ switch (forecast) {
     default:return 0.00;
   }
 }
-  <footer class="max-w-7xl mx-auto px-4 pb-10 text-xs text-slate-500">
-    <p>© 2025 Simulador educativo. Uso didáctico, no sustituye modelos econométricos formales.</p>
-  </footer>
-  
-  <script>
-    // ===== Utilidades =====
     const fmt = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 });
     const fmt2 = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 });
     const clamp = (v, lo, hi)=> Math.max(lo, Math.min(hi, v));
