@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <meta name="description" content="Simulador educativo: ingresos por carga tributaria o nivel base, gasto %PIB con tendencia y ajuste manual, crecimiento del PIB con tendencia y ajuste manual, deuda con tendencia, IPC constante, TPM con postura monetaria, equilibrio fiscal." />
+  <meta name="description" content="Simulador educativo: ingresos por carga tributaria o nivel base, gasto %PIB con tendencia y ajuste manual, crecimiento del PIB fijo, deuda con tendencia, IPC constante, TPM con postura monetaria, equilibrio fiscal." />
   <style>
     .card { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
     .grid-autofit { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
@@ -27,7 +27,7 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-2">Descripción</h2>
-      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong> (por <strong>carga tributaria %PIB</strong> o <strong>nivel base</strong>), <strong>gasto público %PIB</strong> (con tendencia y ajuste manual), <strong>crecimiento del PIB</strong> (con tendencia y ajuste manual), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda %PIB</strong> (con tendencia), <strong>IPC</strong> (constante) y <strong>TPM</strong> (con postura). Incluye PIB pc, Gini e IDH aproximados.</p>
+      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong> (por <strong>carga tributaria %PIB</strong> o <strong>nivel base</strong>), <strong>gasto público %PIB</strong> (con tendencia y ajuste manual), <strong>crecimiento del PIB</strong> (fijo), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda %PIB</strong> (con tendencia), <strong>IPC</strong> (constante) y <strong>TPM</strong> (con postura). Incluye PIB pc, Gini e IDH aproximados.</p>
     </section>
 
     <!-- Supuestos macro -->
@@ -56,21 +56,13 @@
         <label class="block">Crecimiento del PIB (anual, %)
           <input id="growthPct" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="2.0" />
         </label>
-        <label class="block">Postura de crecimiento del PIB
-          <select id="growthTrend" class="mt-1 w-full rounded-xl border-slate-300">
-            <option value="plana" selected>Plana</option>
-            <option value="progresiva">Progresiva (↑ a lo largo del horizonte)</option>
-            <option value="regresiva">Regresiva (↓ a lo largo del horizonte)</option>
-          </select>
-        </label>
-        <label class="block flex items-center gap-2 mt-2">
-          <input id="enableGrowthOverrides" type="checkbox" class="rounded" />
-          <span>Activar <strong>ajuste manual</strong> del crecimiento del PIB por año</span>
+        <label class="block">Horizonte (años)
+          <input id="horizon" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" min="2" max="30" />
         </label>
       </div>
     </section>
 
-    <!-- Políticas -->
+    <!-- Controles de política -->
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-4">2) Controles de política</h2>
       <div class="grid lg:grid-cols-3 gap-6">
@@ -159,20 +151,12 @@
       </div>
     </section>
 
-    <!-- Ajustes manuales -->
+    <!-- Ajuste manual de gasto -->
     <div id="manualSpendBox" class="mb-6 p-4 card rounded-2xl bg-white hidden">
       <h2 class="text-lg font-semibold mb-2">Ajuste manual del gasto público (% del PIB) por año</h2>
       <div id="spendOverrides" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm"></div>
       <div class="mt-3 flex gap-2">
         <button id="btnResetOverrides" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-sm">Restablecer a trayectoria</button>
-      </div>
-    </div>
-
-    <div id="manualGrowthBox" class="mb-6 p-4 card rounded-2xl bg-white hidden">
-      <h2 class="text-lg font-semibold mb-2">Ajuste manual del crecimiento del PIB (anual, %)</h2>
-      <div id="growthOverrides" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm"></div>
-      <div class="mt-3 flex gap-2">
-        <button id="btnResetGrowthOverrides" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-sm">Restablecer a trayectoria</button>
       </div>
     </div>
 
@@ -258,8 +242,7 @@
         <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
           <li>Gasto %PIB: parte del <strong>valor base del año 1</strong> y se ajusta por postura fiscal (transición 5–10 años) y por la <em>tendencia</em> (plana/progresiva/regresiva). Puedes sobrescribirlo año a año.</li>
           <li>Ingresos: si eliges <em>carga tributaria</em>, se calculan como (carga − incentivos verdes) × PIB (acotado). Si eliges <em>nivel base</em>, se mantiene constante la relación ingresos/PIB del año 1.</li>
-          <li>IPC es constante; la deuda evoluciona por el saldo fiscal y por la <strong>tendencia</strong> de deuda fijada desde su nivel inicial.</li>
-          <li>La TPM sigue la <em>postura monetaria</em>; el crecimiento del PIB puede seguir una postura o ajustes manuales.</li>
+          <li>IPC es constante; la deuda evoluciona por el saldo fiscal y por la <strong>tendencia</strong> de deuda fijada desde su nivel inicial. La TPM sigue su <em>postura monetaria</em>.</li>
         </ul>
       </div>
     </section>
@@ -273,8 +256,6 @@
     // ===== Utilidades =====
     const fmt = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 });
     const fmt2 = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 });
-    const pct1 = (x)=> (x*100).toFixed(1) + '%';
-
     const clamp = (v, lo, hi)=> Math.max(lo, Math.min(hi, v));
     const lerp = (a,b,t)=> a + (b-a)*t;
 
@@ -291,7 +272,6 @@
         debtTrend: document.getElementById('debtTrend').value,
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
         growthPct: parseFloat(document.getElementById('growthPct').value || 0)/100,
-        growthTrend: document.getElementById('growthTrend').value,
         horizon: parseInt(document.getElementById('horizon').value || 5),
 
         revenueMethod: document.getElementById('revenueMethod').value,
@@ -311,9 +291,8 @@
       };
     }
 
-    // ===== Estado de overrides (global simple) =====
+    // ===== Estado de overrides =====
     let spendOverrides = null; // array de % (0–100) o null
-    let growthOverrides = null; // array de % (−10 a 20) o null
 
     // ===== Núcleo del modelo =====
     function simulate(P){
@@ -334,13 +313,8 @@
       years.forEach((yr, idx)=>{
         const t = years.length>1 ? idx/(years.length-1) : 1.0;
 
-        // Crecimiento del PIB (tendencia +/- overrides)
-        let g_t = clamp(applyTrend(P.growthPct, P.growthTrend, t), -0.10, 0.20);
-        if (Array.isArray(P.growthOverrides) && P.growthOverrides.length>idx && P.growthOverrides[idx] != null) {
-          g_t = clamp(P.growthOverrides[idx]/100, -0.10, 0.20);
-        }
-        const growth = g_t;
-
+        // Crecimiento del PIB (fijo)
+        const growth = clamp(P.growthPct, -0.10, 0.20);
         GDP = GDP * (1 + growth);
         popM = popM * 1.005; // crecimiento demográfico suave
 
@@ -403,32 +377,19 @@
     function run(){
       const params = readInputs();
 
-      // Inicialización de overrides si se activan
+      // Overrides de gasto %PIB
       const enableSpend = document.getElementById('enableSpendOverrides').checked;
-      const enableGrowth = document.getElementById('enableGrowthOverrides').checked;
-
       if (enableSpend && (!Array.isArray(spendOverrides) || spendOverrides.length !== params.horizon)) {
-        const baseOut = simulate({...params, spendOverrides: null, growthOverrides});
+        const baseOut = simulate({...params, spendOverrides: null});
         spendOverrides = baseOut.rows.map(r => Number((r.spendPct*100).toFixed(1)));
         buildSpendOverridesUI(spendOverrides);
       }
-      if (enableGrowth && (!Array.isArray(growthOverrides) || growthOverrides.length !== params.horizon)) {
-        growthOverrides = Array.from({length: params.horizon}, (_,i)=>{
-          const t = params.horizon>1 ? i/(params.horizon-1) : 1.0;
-          return Number((applyTrend(params.growthPct, params.growthTrend, t)*100).toFixed(1));
-        });
-        buildGrowthOverridesUI(growthOverrides);
-      }
 
-      const out = simulate({...params,
-        spendOverrides: enableSpend ? spendOverrides : null,
-        growthOverrides: enableGrowth ? growthOverrides : null
-      });
+      const out = simulate({...params, spendOverrides: enableSpend ? spendOverrides : null });
 
       // Mostrar secciones
       document.getElementById('results').classList.remove('hidden');
       document.getElementById('manualSpendBox').classList.toggle('hidden', !enableSpend);
-      document.getElementById('manualGrowthBox').classList.toggle('hidden', !enableGrowth);
 
       // Resumen
       const sum = document.getElementById('summary');
@@ -437,12 +398,11 @@
         ? `carga tributaria ${(params.taxBurden*100).toFixed(1)}% − incentivos ${(params.greenIncentives*100).toFixed(1)}% = ${(Math.max(3, (params.taxBurden-params.greenIncentives)*100)).toFixed(1)}%`
         : `relación ingresos/PIB ${(out.revRatioBase*100).toFixed(1)}%`;
       const spendBadge = enableSpend ? '<span class="badge bg-amber-100 text-amber-700">Gasto %PIB: ajuste manual activo</span>' : '';
-      const growthBadge = enableGrowth ? '<span class="badge bg-indigo-100 text-indigo-700">Crecimiento PIB: ajuste manual activo</span>' : '';
 
       sum.innerHTML = `
         <div>
           <p><strong>Gasto %PIB (año 1):</strong> ${spend0.toFixed(1)}% ${spendBadge} <span class="text-slate-500">(tendencia: ${params.spendTrend})</span></p>
-          <p><strong>Crecimiento del PIB (anual):</strong> ${(params.growthPct*100).toFixed(1)}% ${growthBadge} <span class="text-slate-500">(postura: ${params.growthTrend})</span></p>
+          <p><strong>Crecimiento del PIB (anual):</strong> ${(params.growthPct*100).toFixed(1)}%</p>
         </div>
         <div>
           <p><strong>Método de ingresos:</strong> ${params.revenueMethod==='burden' ? 'Carga tributaria' : 'Nivel base (año 1)'}</p>
@@ -528,10 +488,7 @@
 
     function exportScenario(){
       const params = readInputs();
-      const out = simulate({...params,
-        spendOverrides: document.getElementById('enableSpendOverrides').checked ? spendOverrides : null,
-        growthOverrides: document.getElementById('enableGrowthOverrides').checked ? growthOverrides : null
-      });
+      const out = simulate({...params, spendOverrides: document.getElementById('enableSpendOverrides').checked ? spendOverrides : null});
       const payload = { params, out, generatedAt: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -541,7 +498,7 @@
     function reset(){
       document.querySelectorAll('input').forEach(el=> el.value = el.defaultValue);
       document.querySelectorAll('select').forEach(el=> el.value = el.querySelector('option[selected]')?.value || el.value);
-      spendOverrides = null; growthOverrides = null;
+      spendOverrides = null;
       document.getElementById('results').classList.add('hidden');
       run();
     }
@@ -564,30 +521,11 @@
       const btn = document.getElementById('btnResetOverrides'); if(btn){ btn.onclick = ()=>{ spendOverrides = null; run(); }; }
     }
 
-    function buildGrowthOverridesUI(values){
-      const box = document.getElementById('growthOverrides');
-      box.innerHTML = values.map((v, i)=>{
-        return `<div class="p-3 rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-2"><span><strong>Año ${i+1}</strong></span><span class="text-slate-500"><span id="grlbl_${i}">${v.toFixed(1)}</span>%</span></div>
-          <input type="range" min="-10" max="20" step="0.1" value="${v}" id="gr_${i}" class="w-full" />
-        </div>`;
-      }).join('');
-      values.forEach((_, i)=>{
-        const slider = document.getElementById(`gr_${i}`);
-        slider.addEventListener('input', (e)=>{
-          const val = parseFloat(e.target.value);
-          growthOverrides[i] = val; document.getElementById(`grlbl_${i}`).textContent = val.toFixed(1); run();
-        });
-      });
-      const btn = document.getElementById('btnResetGrowthOverrides'); if(btn){ btn.onclick = ()=>{ growthOverrides = null; run(); }; }
-    }
-
     // Eventos
     document.getElementById('btnRun').addEventListener('click', run);
     document.getElementById('btnReset').addEventListener('click', reset);
     document.getElementById('btnExport').addEventListener('click', exportScenario);
     document.getElementById('enableSpendOverrides').addEventListener('change', run);
-    document.getElementById('enableGrowthOverrides').addEventListener('change', run);
 
     // Run inicial
     run();
