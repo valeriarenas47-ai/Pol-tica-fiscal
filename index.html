@@ -114,6 +114,9 @@
                 <option value="regresiva">Regresiva (↓)</option>
               </select>
             </label>
+            <label class="block">Gasto público base (% del PIB, año 1)
+              <input id="spendPctY1_input" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="24" />
+            </label>
           </div>
         </div>
 
@@ -224,7 +227,7 @@
       <div class="p-4 card rounded-2xl bg-white">
         <h3 class="text-lg font-semibold mb-2">Notas del modelo (supuestos simplificados)</h3>
         <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
-          <li>Gasto %PIB = base 21% ± postura fiscal (transición 5–10 años) con tendencia plana/progresiva/regresiva.</li>
+          <li>Gasto %PIB: parte del <strong>valor base que indiques para el año 1</strong> y se ajusta por postura fiscal (transición 5–10 años) y por la <em>tendencia</em> (plana/progresiva/regresiva).</li>
           <li>Ingresos: si eliges <em>carga tributaria</em>, se calculan como (carga − incentivos verdes) × PIB (acotado). Si eliges <em>nivel base</em>, se mantiene constante la relación ingresos/PIB del año 1.</li>
           <li>IPC es el valor constante que definas. La deuda evoluciona por saldo fiscal y por la <strong>tendencia de deuda</strong> desde su nivel inicial.</li>
         </ul>
@@ -266,7 +269,9 @@
         fiscalEnd: document.getElementById('fiscalEnd').value,
         fiscalYears: parseInt(document.getElementById('fiscalYears').value || 7),
         spendTrend: document.getElementById('spendTrend').value,
+        spendPctY1: parseFloat(document.getElementById('spendPctY1_input').value || 0)/100,
       };
+    }
     }
 
     // Tendencias lineales: progresiva (+10% relativo al final), regresiva (-10%), plana (0)
@@ -311,7 +316,7 @@
         popM = popM * 1.005; // crecimiento demográfico
 
         // Gasto % del PIB
-        let spendRatio0 = clamp(0.21 + stanceOffset, 0.12, 0.35);
+        let spendRatio0 = clamp(P.spendPctY1 + stanceOffset, 0.10, 0.60);
         let spendRatio = applyTrend(spendRatio0, P.spendTrend, t);
 
         // Ingresos segun método
