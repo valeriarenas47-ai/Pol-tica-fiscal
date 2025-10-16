@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Chart.js Annotation Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <meta name="description" content="Simulador educativo: ingresos públicos, gasto (% PIB), equilibrio fiscal, deuda con tendencia, IPC constante, IDH, PIB per cápita y Gini. Archivo único para Netlify." />
+  <meta name="description" content="Simulador educativo: ingresos públicos (por carga tributaria o nivel base), gasto (% PIB), equilibrio, deuda con tendencia, IPC constante, IDH, PIB pc y Gini. Archivo único para Netlify." />
   <style>
     .card { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
     .grid-autofit { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
@@ -30,7 +30,7 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <section class="mb-6 p-4 card rounded-2xl bg-white">
       <h2 class="text-xl font-semibold mb-2">Descripción</h2>
-      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong>, <strong>gasto público</strong> (incluye <strong>% del PIB</strong>), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda</strong> (con tendencia desde el nivel inicial), <strong>IPC</strong> (constante según tu entrada), y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>. Modelo heurístico didáctico.</p>
+      <p class="text-sm text-slate-600">Archivo único listo para Netlify. Proyecta <strong>ingresos</strong> (puedes elegir calcularlos por <strong>carga tributaria % del PIB</strong> o mantener un <strong>nivel base en el año 1</strong>), <strong>gasto público</strong> (incluye <strong>% del PIB</strong> con tendencia), <strong>punto de equilibrio</strong>, <strong>déficit/superávit</strong>, <strong>deuda</strong> (con tendencia desde el nivel inicial), <strong>IPC</strong> (constante), y efectos aproximados en <strong>IDH</strong>, <strong>PIB per cápita</strong> e <strong>Índice de Gini</strong>. Modelo heurístico didáctico.</p>
     </section>
 
     <!-- Parámetros globales -->
@@ -70,13 +70,23 @@
         <div>
           <h3 class="text-lg font-semibold mb-2">Fiscal</h3>
           <div class="grid-autofit">
+            <label class="block">Método para ingresos
+              <select id="revenueMethod" class="mt-1 w-full rounded-xl border-slate-300">
+                <option value="burden" selected>Por carga tributaria (% del PIB)</option>
+                <option value="level">Por nivel base (año 1)</option>
+              </select>
+            </label>
+            <label class="block">Carga tributaria objetivo (% del PIB)
+              <input id="taxBurden" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="23" />
+            </label>
             <label class="block">Ingresos públicos totales (USD, año 1)
               <input id="revenueY1" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="46000000000" />
             </label>
-             <label class="block">Carga tributaria objetivo (% del PIB)
-              <input id="taxBurden" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="23" />
+            <label class="block">Incentivos fiscales medioambientales (% del PIB)
+              <input id="greenIncentives" type="number" step="0.05" class="number-input mt-1 w-full rounded-xl border-slate-300" value="0.5" />
             </label>
           </div>
+        </div>
 
         <!-- Transición de postura fiscal -->
         <div>
@@ -203,7 +213,7 @@
         <h3 class="text-lg font-semibold mb-2">Notas del modelo (supuestos simplificados)</h3>
         <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
           <li>Gasto %PIB = base 21% ± postura fiscal (transición 5–10 años) con tendencia plana/progresiva/regresiva.</li>
-          <li>Ingresos: introduces el nivel del <strong>año 1</strong>; el simulador mantiene esa <em>relación ingresos/PIB</em> constante a lo largo del horizonte.</li>
+          <li>Ingresos: si eliges <em>carga tributaria</em>, se calculan como (carga − incentivos verdes) × PIB (acotado). Si eliges <em>nivel base</em>, se mantiene constante la relación ingresos/PIB del año 1.</li>
           <li>IPC es el valor constante que definas. La deuda evoluciona por saldo fiscal y por la <strong>tendencia de deuda</strong> desde su nivel inicial.</li>
         </ul>
       </div>
@@ -231,6 +241,8 @@
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
         horizon: parseInt(document.getElementById('horizon').value || 5),
 
+        revenueMethod: document.getElementById('revenueMethod').value,
+        taxBurden: parseFloat(document.getElementById('taxBurden').value || 0)/100,
         revenueY1: parseFloat(document.getElementById('revenueY1').value || 0),
         greenIncentives: parseFloat(document.getElementById('greenIncentives').value || 0)/100,
 
@@ -268,8 +280,8 @@
       let popM = P.pop; // millones
       let debtRatio = P.debt0/100;
 
-      // Relación ingresos/PIB a partir del año 1
-      const revRatio = P.revenueY1 / P.gdp0; // constante
+      // Relación ingresos/PIB cuando método = nivel base
+      const revRatioBase = P.revenueY1 / Math.max(1, P.gdp0);
 
       // Ajuste de política de deuda (±0.3 pp del PIB por año) desde el nivel inicial
       const debtAdj = P.debtTrend==='progresivo' ? +0.003 : P.debtTrend==='regresivo' ? -0.003 : 0.0;
@@ -287,7 +299,10 @@
         let spendRatio0 = clamp(0.21 + stanceOffset, 0.12, 0.35);
         let spendRatio = applyTrend(spendRatio0, P.spendTrend, t);
 
-        const revenues = revRatio * GDP; // por construcción
+        // Ingresos segun método
+        let effTax = clamp(P.taxBurden - P.greenIncentives, 0.03, 0.60); // %PIB efectivo
+        let revenues = (P.revenueMethod==='burden') ? effTax * GDP : revRatioBase * GDP;
+
         const spendTotal = spendRatio * GDP * (1 + 0.2*P.inflation) * (1 + 0.1*(popM/P.pop - 1));
 
         // Saldo fiscal
@@ -311,7 +326,7 @@
         // IPC (constante segun entrada)
         const cpi = P.inflation;
 
-        rows.push({ year: yr, GDP, revenues, spendTotal, balance, debtRatio, gdpPC, gini, hdi, spendPct: spendRatio, cpi });
+        rows.push({ year: yr, GDP, revenues, spendTotal, balance, debtRatio, gdpPC, gini, hdi, spendPct: spendRatio, cpi, effTaxUsed: effTax });
       });
 
       // Punto(s) de equilibrio: primer cruce
@@ -324,7 +339,7 @@
       const y1 = rows[0];
       const neededTaxRatio = clamp((y1.spendTotal / y1.GDP), 0, 0.60);
 
-      return { years, rows, neededTaxRatio, beIndex, revRatio };
+      return { years, rows, neededTaxRatio, beIndex, revRatioBase };
     }
 
     // ===== Render =====
@@ -340,14 +355,15 @@
       const growthApprox = (Math.pow(out.rows.at(-1).GDP/params.gdp0, 1/out.rows.length)-1)*100;
       const spend0 = out.rows[0].spendTotal/out.rows[0].GDP*100;
       const rev0 = out.rows[0].revenues/out.rows[0].GDP*100;
+      const methodText = params.revenueMethod==='burden' ? `carga tributaria ${(params.taxBurden*100).toFixed(1)}% − incentivos ${(params.greenIncentives*100).toFixed(1)}% = ${(Math.max(3, (params.taxBurden-params.greenIncentives)*100)).toFixed(1)}%` : `relación ingresos/PIB ${(out.revRatioBase*100).toFixed(1)}%`;
       sum.innerHTML = `
         <div>
           <p><strong>Crecimiento anual medio:</strong> ${growthApprox.toFixed(2)}%</p>
           <p><strong>Gasto %PIB (año 1):</strong> ${spend0.toFixed(1)}% <span class="text-slate-500">(tendencia: ${params.spendTrend})</span></p>
         </div>
         <div>
-          <p><strong>Ingresos (año 1):</strong> $${fmt.format(params.revenueY1)} <span class="text-slate-500">(${(out.revRatio*100).toFixed(1)}% del PIB)</span></p>
-          <p><strong>Punto de equilibrio requerido (año 1):</strong> ${(out.neededTaxRatio*100).toFixed(1)}% del PIB</p>
+          <p><strong>Método de ingresos:</strong> ${params.revenueMethod==='burden' ? 'Carga tributaria' : 'Nivel base (año 1)'} </p>
+          <p class="text-slate-500">${methodText}</p>
         </div>
         <div>
           <p><strong>Deuda inicial:</strong> ${fmt2.format(params.debt0)}% del PIB <span class="text-slate-500">(tendencia: ${params.debtTrend})</span></p>
