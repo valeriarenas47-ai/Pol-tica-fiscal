@@ -56,6 +56,9 @@
         <label class="block">Inflación (IPC anual, %) — constante
           <input id="inflation" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="4" />
         </label>
+        <label class="block">Crecimiento del PIB (anual, %)
+          <input id="growthPct" type="number" step="0.1" class="number-input mt-1 w-full rounded-xl border-slate-300" value="2.0" />
+        </label>
         <label class="block">Horizonte (años)
           <input id="horizon" type="number" class="number-input mt-1 w-full rounded-xl border-slate-300" value="5" min="2" max="30" />
         </label>
@@ -108,10 +111,6 @@
               <input id="fiscalYears" type="number" min="5" max="10" value="7" class="number-input mt-1 w-full rounded-xl border-slate-300" />
             </label>
             <label class="block">Tendencia del gasto fiscal (%PIB)
-              <label class="block">Gasto público base (% del PIB, año 1)
-  <input id="spendPctY1_input" type="number" step="0.1"
-         class="number-input mt-1 w-full rounded-xl border-slate-300" value="24" />
-</label>
               <select id="spendTrend" class="mt-1 w-full rounded-xl border-slate-300">
                 <option value="plana" selected>Plana</option>
                 <option value="progresiva">Progresiva (↑)</option>
@@ -255,8 +254,8 @@
         debt0: parseFloat(document.getElementById('debt0').value || 0),
         debtTrend: document.getElementById('debtTrend').value,
         inflation: parseFloat(document.getElementById('inflation').value || 0)/100,
+        growthPct: parseFloat(document.getElementById('growthPct').value || 0)/100,
         horizon: parseInt(document.getElementById('horizon').value || 5),
-        spendPctY1: parseFloat(document.getElementById('spendPctY1_input').value || 0)/100,
 
         revenueMethod: document.getElementById('revenueMethod').value,
         taxBurden: parseFloat(document.getElementById('taxBurden').value || 0)/100,
@@ -271,7 +270,9 @@
         fiscalEnd: document.getElementById('fiscalEnd').value,
         fiscalYears: parseInt(document.getElementById('fiscalYears').value || 7),
         spendTrend: document.getElementById('spendTrend').value,
+        spendPctY1: parseFloat(document.getElementById('spendPctY1_input').value || 0)/100,
       };
+    }
     }
 
     // Tendencias lineales: progresiva (+10% relativo al final), regresiva (-10%), plana (0)
@@ -311,12 +312,12 @@
         const policyRate_t = applyTrend(P.policyRate, P.monetaryTrend, t);
         const rateGap_t = policyRate_t - P.inflation;
         const monPenalty_t = clamp(rateGap_t, -0.03, 0.05) * -0.4;
-        const g = clamp(basePotential + monPenalty_t + (stanceOffset>0? stanceOffset*0.3 : stanceOffset*0.2), -0.03, 0.07);
+        const g = clamp(P.growthPct, -0.10, 0.20);
         GDP = GDP * (1 + g);
         popM = popM * 1.005; // crecimiento demográfico
 
         // Gasto % del PIB
-        let spendRatio0 = clamp(P.spendPctY1 + stanceOffset, 0.10, 0.60);
+        let spendRatio0 = clamp(0.21 + stanceOffset, 0.12, 0.35);
         let spendRatio = applyTrend(spendRatio0, P.spendTrend, t);
 
         // Ingresos segun método
@@ -372,10 +373,24 @@
 
       // Resumen
       const sum = document.getElementById('summary');
-      const growthApprox = (Math.pow(out.rows.at(-1).GDP/params.gdp0, 1/out.rows.length)-1)*100;
       const spend0 = out.rows[0].spendTotal/out.rows[0].GDP*100;
       const rev0 = out.rows[0].revenues/out.rows[0].GDP*100;
       const methodText = params.revenueMethod==='burden' ? `carga tributaria ${(params.taxBurden*100).toFixed(1)}% − incentivos ${(params.greenIncentives*100).toFixed(1)}% = ${(Math.max(3, (params.taxBurden-params.greenIncentives)*100)).toFixed(1)}%` : `relación ingresos/PIB ${(out.revRatioBase*100).toFixed(1)}%`;
+      const overrideBadge = (document.getElementById('enableSpendOverrides')?.checked) ? '<span class="badge bg-amber-100 text-amber-700">Gasto %PIB: ajuste manual activo</span>' : '';
+      sum.innerHTML = `
+        <div>
+          <p><strong>Gasto %PIB (año 1):</strong> ${spend0.toFixed(1)}% ${overrideBadge} <span class="text-slate-500">(tendencia: ${params.spendTrend})</span></p>
+          <p><strong>Crecimiento del PIB (anual):</strong> ${(params.growthPct*100).toFixed(1)}%</p>
+        </div>
+        <div>
+          <p><strong>Método de ingresos:</strong> ${params.revenueMethod==='burden' ? 'Carga tributaria' : 'Nivel base (año 1)'} </p>
+          <p class="text-slate-500">${methodText}</p>
+        </div>
+        <div>
+          <p><strong>Postura monetaria:</strong> ${params.monetaryTrend} <span class="text-slate-500">(TPM inicial ${(params.policyRate*100).toFixed(2)}%)</span></p>
+          <p><strong>Deuda inicial:</strong> ${fmt2.format(params.debt0)}% del PIB <span class="text-slate-500">(tendencia: ${params.debtTrend})</span></p>
+        </div>
+      `;
       sum.innerHTML = `
         <div>
           <p><strong>Crecimiento anual medio:</strong> ${growthApprox.toFixed(2)}%</p>
