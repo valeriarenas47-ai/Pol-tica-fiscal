@@ -315,10 +315,8 @@ switch (forecast) {
       let debtRatio = P.debt0/100;
 
       years.forEach((yr, idx)=>{
-        const t = years.length>1 ? idx/(years.length-1) : 1.0;
       const growth = clamp(growthFromForecast(P.gdpForecast), -0.10, 0.20);
       GDP = GDP * (1 + growth);
-        // Crecimiento del PIB (fijo)
 
         popM = popM * 1.005; // crecimiento demográfico suave
 
